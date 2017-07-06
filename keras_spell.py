@@ -20,6 +20,7 @@ import re
 import json
 import itertools
 import logging
+from logging.handlers import SysLogHandler
 import requests
 import numpy as np
 from numpy.random import choice as random_choice, randint as random_randint, shuffle as random_shuffle, seed as random_seed, rand
@@ -31,8 +32,12 @@ from keras.callbacks import Callback
 
 # Set a logger for the module
 LOGGER = logging.getLogger(__name__) # Every log will use the module name
-LOGGER.addHandler(logging.StreamHandler())
-LOGGER.setLevel(logging.DEBUG)
+LOGGER.setLevel(logging.INFO)
+handler = SysLogHandler(address = '/dev/log')
+formatter = logging.Formatter('%(module)s.%(funcName)s: %(message)s')
+formatter._fmt = "[DeepSpell] " + formatter._fmt
+handler.setFormatter(formatter)
+LOGGER.addHandler(handler)
 
 random_seed(123) # Reproducibility
 
@@ -572,14 +577,20 @@ def train_speller(from_file=None):
     itarative_train(model)
 
 if __name__ == '__main__':
-#     download_the_news_data()
-#     uncompress_data()
-#     preprocesses_data_clean()
-#     preprocesses_data_analyze_chars()
-#     preprocesses_data_filter()
-#     preprocesses_split_lines() --- Choose this step or:
-#     preprocesses_split_lines2()
-#     preprocesses_split_lines4()
-#     preprocess_partition_data()
-#     train_speller(os.path.join(DATA_FILES_FULL_PATH, "keras_spell_e15.h5"))
-    train_speller()
+    LOGGER.info("Starting DeepSpell")
+    try:
+        print (u'\u2612')
+        LOGGER.info("Did voila")
+        #  download_the_news_data()
+        #  uncompress_data()
+        #  preprocesses_data_clean()
+        #  preprocesses_data_analyze_chars()
+        #  preprocesses_data_filter()
+        #  preprocesses_split_lines() --- Choose this step or:
+    #  preprocesses_split_lines2()
+    #  preprocesses_split_lines4()
+        #  preprocess_partition_data()
+        #  train_speller(os.path.join(DATA_FILES_FULL_PATH, "keras_spell_e15.h5"))
+        train_speller()
+    except Exception as e:
+        LOGGER.error(traceback.format_exc())
