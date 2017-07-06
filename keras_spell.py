@@ -339,7 +339,7 @@ class OnEpochEndCallback(Callback):
 
 ON_EPOCH_END_CALLBACK = OnEpochEndCallback()
 
-def itarative_train(model):
+def itarative_train(model, from_epoch=0):
     """
     Iterative training of the model
      - To allow for finite RAM...
@@ -350,7 +350,7 @@ def itarative_train(model):
                         verbose=1, callbacks=[ON_EPOCH_END_CALLBACK, ], validation_data=generator(NEWS_FILE_NAME_VALIDATE),
                         validation_steps=CONFIG.validation_steps,
                         class_weight=None, max_q_size=10, workers=1,
-                        pickle_safe=False, initial_epoch=0)
+                        pickle_safe=False, initial_epoch=from_epoch)
 
 
 def iterate_training(model, X_train, y_train, X_val, y_val, ctable):
@@ -568,13 +568,13 @@ def train_speller_w_all_data():
     model = generate_model(y_maxlen, chars)
     iterate_training(model, X_train, y_train, X_val, y_val, ctable)
 
-def train_speller(from_file=None):
+def train_speller(from_file=None, from_epoch=0):
     """Train the speller"""
     if from_file:
         model = load_model(from_file)
     else:
         model = generate_model(CONFIG.max_input_len, chars=read_top_chars())
-    itarative_train(model)
+    itarative_train(model, from_epoch)
 
 if __name__ == '__main__':
     LOGGER.info("Starting DeepSpell")
@@ -590,7 +590,7 @@ if __name__ == '__main__':
     #  preprocesses_split_lines2()
     #  preprocesses_split_lines4()
         #  preprocess_partition_data()
-        #  train_speller(os.path.join(DATA_FILES_FULL_PATH, "keras_spell_e15.h5"))
-        train_speller()
+        train_speller(os.path.join(DATA_FILES_FULL_PATH, "keras_spell_e88.h5"), from_epoch=88)
+        # train_speller()
     except Exception as e:
         LOGGER.error(traceback.format_exc())
