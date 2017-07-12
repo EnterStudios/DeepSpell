@@ -25,6 +25,7 @@ import requests
 import numpy as np
 from numpy.random import choice as random_choice, randint as random_randint, shuffle as random_shuffle, seed as random_seed, rand
 from numpy import zeros as np_zeros # pylint:disable=no-name-in-module
+import yaml
 
 from keras.models import Sequential, load_model
 from keras.layers import Activation, TimeDistributed, Dense, RepeatVector, Dropout, recurrent
@@ -41,28 +42,29 @@ LOGGER.addHandler(handler)
 
 random_seed(123) # Reproducibility
 
+
 class Configuration(object):
-    """Dump stuff here"""
+    def __init__(self):
+        with open(".settings/config.yml", "r") as ymlfile:
+            settings = yaml.load(ymlfile)
+
+            self.input_layers = settings['model']['input_layers']
+            self.output_layers = settings['model']['output_layers']
+            self.amount_of_dropout = settings['model']['amount_of_dropout']
+            self.hidden_size = settings['model']['hidden_size']
+            self.initialization = settings['model']['initialization']
+            self.number_of_chars = settings['model']['number_of_chars']
+            self.max_input_len = settings['model']['max_input_len']
+            self.inverted = settings['model']['inverted']
+
+            self.batch_size = settings['training']['batch_size']
+            self.epochs = settings['training']['epochs']
+            self.steps_per_epoch = settings['training']['steps_per_epoch']
+            self.validation_steps = settings['training']['validation_steps']
+            self.number_of_iterations = settings['training']['number_of_iterations']
+
 
 CONFIG = Configuration()
-#pylint:disable=attribute-defined-outside-init
-# Parameters for the model:
-CONFIG.input_layers = 2
-CONFIG.output_layers = 2
-CONFIG.amount_of_dropout = 0.2
-CONFIG.hidden_size = 500
-CONFIG.initialization = "he_normal" # : Gaussian initialization scaled by fan-in (He et al., 2014)
-CONFIG.number_of_chars = 100
-CONFIG.max_input_len = 60
-CONFIG.inverted = True
-
-# parameters for the training:
-CONFIG.batch_size = 100 # As the model changes in size, play with the batch size to best fit the process in memory
-CONFIG.epochs = 500 # due to mini-epochs.
-CONFIG.steps_per_epoch = 1000 # This is a mini-epoch. Using News 2013 an epoch would need to be ~60K.
-CONFIG.validation_steps = 10
-CONFIG.number_of_iterations = 10
-#pylint:enable=attribute-defined-outside-init
 
 DIGEST = sha256(json.dumps(CONFIG.__dict__, sort_keys=True)).hexdigest()
 

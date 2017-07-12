@@ -1,0 +1,16 @@
+model:
+  input_layers: 2
+  output_layers: 2
+  amount_of_dropout: 0.2
+  hidden_size: 500
+  initialization: "he_normal" # : Gaussian initialization scaled by fan-in (He et al., 2014)
+  number_of_chars: 100
+  max_input_len: 60
+  inverted: True
+
+training:
+  batch_size: 100 # As the model changes in size, play with the batch size to best fit the process in memory
+  epochs: 500 # due to mini-epochs.
+  steps_per_epoch: 1000 # This is a mini-epoch. Using News 2013 an epoch would need to be ~60K.
+  validation_steps: 10
+  number_of_iterations: 10
