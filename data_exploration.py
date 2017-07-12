@@ -18,7 +18,7 @@ def read_and_count(filename):
 
 if __name__ == '__main__':
 
-    DATA_FILES_PATH = "~/Downloads/data"
+    DATA_FILES_PATH = "~/DeepSpell/Downloads/data"
     DATA_FILES_FULL_PATH = os.path.expanduser(DATA_FILES_PATH)
 
     year_list = [2011, 2013]
