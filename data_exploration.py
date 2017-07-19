@@ -1,26 +1,8 @@
 '''
 http://www.statmt.org/wmt14/translation-task.html
 
-
 News Crawl: articles from 2011	(EN) 784 MB  http://www.statmt.org/wmt14/training-monolingual-news-crawl/news.2011.fr.shuffled.gz
 News Crawl: articles from 2013	(EN) 1.1 GB  http://www.statmt.org/wmt14/training-monolingual-news-crawl/news.2013.en.shuffled.gz
-
-news.2007.en.clean - 3,782,549 rows.
-news.2007.en.filtered - 3,780,034 rows.
-news.2007.en.split - 13,745,293 rows.
-news.2007.en.split2 - 708,160 rows.
-news.2007.en.split3 - 245,469 rows.
-news.2011.en.clean - 15,437,675 rows.
-news.2011.en.filtered - 15,420,582 rows.
-news.2011.en.split - 54,897,272 rows.
-news.2011.en.split2 - 3,186,453 rows.
-news.2011.en.split3 - 900,391 rows.
-news.2013.en.clean - 21,688,363 rows.
-news.2013.en.filtered - 21,641,708 rows.
-news.2013.en.split - 76,415,056 rows.
-news.2013.en.split2 - 4,304,937 rows.
-news.2013.en.split3 - 1,248,269 rows.
-
 '''
 
 import os
