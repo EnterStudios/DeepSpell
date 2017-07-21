@@ -15,7 +15,10 @@ import os
 from hashlib import sha256
 import json
 from numpy.random import seed as random_seed
-from keras_spell_local import CharacterTable, read_top_chars, generate_question, _vectorize, generate_model, Configuration, print_random_predictions
+from keras_spell import CharacterTable, read_top_chars, generate_question, _vectorize, generate_model, Configuration, print_random_predictions
+
+from keras.models import Sequential
+from keras.layers import Activation, TimeDistributed, Dense, RepeatVector, Dropout, recurrent
 
 from hyperas import optim
 from hyperas.distributions import choice, uniform, conditional
@@ -42,7 +45,7 @@ def data():
     SAVED_MODEL_FILE_NAME = os.path.join(DATA_FILES_FULL_PATH, "keras_spell_grid_search_e{}.h5") # an HDF5 file
 
 
-    size = 0.00001
+    size = 0.0001
     answers = open(NEWS_FILE_NAME_SAMPLE.format(size)).read().decode('utf-8').split("\n")
     qa_tuples = [generate_question(answer) for answer in answers]
     questions = [qa[0][::-1] for qa in qa_tuples]
@@ -78,7 +81,32 @@ def model(x_train, y_train, x_test, y_test):
     """
 
     CONFIG = Configuration()
-    model = generate_model(CONFIG.max_input_len, chars=read_top_chars())
+
+    """Generate the model"""
+    print('Build model...')
+    chars = read_top_chars()
+    model = Sequential()
+    # "Encode" the input sequence using an RNN, producing an output of hidden_size
+    # note: in a situation where your input sequences have a variable length,
+    # use input_shape=(None, nb_feature).
+    for layer_number in range(CONFIG.input_layers):
+        model.add(recurrent.LSTM(CONFIG.hidden_size, input_shape=(None, len(chars)), kernel_initializer=CONFIG.initialization,
+                                 return_sequences=layer_number + 1 < CONFIG.input_layers))
+        model.add(Dropout(CONFIG.amount_of_dropout))
+    # For the decoder's input, we repeat the encoded input for each time step
+    model.add(RepeatVector(CONFIG.max_input_len))
+    # The decoder RNN could be multiple layers stacked or a single layer
+    for _ in range(CONFIG.output_layers):
+        model.add(recurrent.LSTM(CONFIG.hidden_size, return_sequences=True, kernel_initializer=CONFIG.initialization))
+        model.add(Dropout(CONFIG.amount_of_dropout))
+
+    # For each of step of the output sequence, decide which character should be chosen
+    model.add(TimeDistributed(Dense(len(chars), kernel_initializer=CONFIG.initialization)))
+    model.add(Activation('softmax'))
+
+    model.compile(loss=CONFIG.loss, optimizer=CONFIG.optimizer, metrics=['accuracy'])
+    return model
+
     model.fit(x_train, y_train,
               batch_size={{choice([10, 100, 250, 500])}},
               epochs={{choice([10, 25])}},
