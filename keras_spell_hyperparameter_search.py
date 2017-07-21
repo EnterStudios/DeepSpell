@@ -15,9 +15,7 @@ import os
 from hashlib import sha256
 import json
 from numpy.random import seed as random_seed
-from datetime import datetime
-from keras_spell_local import CharacterTable, read_top_chars, generate_question, _vectorize, generate_model, Configuration
-import yaml
+from keras_spell_local import CharacterTable, read_top_chars, generate_question, _vectorize, generate_model, Configuration, print_random_predictions
 
 from hyperas import optim
 from hyperas.distributions import choice, uniform, conditional
@@ -82,14 +80,18 @@ def model(x_train, y_train, x_test, y_test):
     CONFIG = Configuration()
     model = generate_model(CONFIG.max_input_len, chars=read_top_chars())
     model.fit(x_train, y_train,
-              batch_size={{choice([10, 25, 50, 100])}},
-              epochs={{choice([10, 50, 100])}},
+              batch_size={{choice([10, 25])}},
+              epochs={{choice([1, 5])}},
               verbose=2,
               validation_data=(x_test, y_test))
 
     score, acc = model.evaluate(x_test, y_test, verbose=0)
 
     print('Test accuracy:', acc)
+    print('Random Predictions:')
+    ctable = CharacterTable(read_top_chars())
+    print_random_predictions(model, ctable, x_test, y_test)
+
     return {'loss': -acc, 'status': STATUS_OK, 'model': model}
 
 if __name__ == '__main__':
