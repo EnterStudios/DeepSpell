@@ -104,7 +104,7 @@ def model(x_train, y_train, x_test, y_test):
     model.add(TimeDistributed(Dense(len(chars), kernel_initializer=CONFIG.initialization)))
     model.add(Activation('softmax'))
 
-    model.compile(loss=CONFIG.loss, optimizer=CONFIG.optimizer, metrics=['accuracy'])
+    model.compile(loss=CONFIG.loss, optimizer={{choice(['rmsprop', 'adam', 'sgd'])}}, metrics=['accuracy'])
     return model
 
     model.fit(x_train, y_train,
