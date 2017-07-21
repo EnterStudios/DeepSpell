@@ -92,13 +92,13 @@ def model(x_train, y_train, x_test, y_test):
     for layer_number in range(CONFIG.input_layers):
         model.add(recurrent.LSTM(CONFIG.hidden_size, input_shape=(None, len(chars)), kernel_initializer=CONFIG.initialization,
                                  return_sequences=layer_number + 1 < CONFIG.input_layers))
-        model.add(Dropout(CONFIG.amount_of_dropout))
+        model.add(Dropout({{uniform(0, 1)}}))
     # For the decoder's input, we repeat the encoded input for each time step
     model.add(RepeatVector(CONFIG.max_input_len))
     # The decoder RNN could be multiple layers stacked or a single layer
     for _ in range(CONFIG.output_layers):
         model.add(recurrent.LSTM(CONFIG.hidden_size, return_sequences=True, kernel_initializer=CONFIG.initialization))
-        model.add(Dropout(CONFIG.amount_of_dropout))
+        model.add(Dropout({{uniform(0, 1)}}))
 
     # For each of step of the output sequence, decide which character should be chosen
     model.add(TimeDistributed(Dense(len(chars), kernel_initializer=CONFIG.initialization)))
