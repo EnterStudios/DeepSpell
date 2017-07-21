@@ -12,6 +12,7 @@ See https://medium.com/@majortal/deep-spelling-9ffef96a24f6#.2c9pu8nlm
 
 from __future__ import print_function, division, unicode_literals
 
+import traceback
 import os
 import errno
 from collections import Counter
@@ -29,7 +30,7 @@ import yaml
 
 from keras.models import Sequential, load_model
 from keras.layers import Activation, TimeDistributed, Dense, RepeatVector, Dropout, recurrent
-from keras.callbacks import Callback
+from keras.callbacks import Callback, ModelCheckpoint, TensorBoard, EarlyStopping, CSVLogger
 
 # Set a logger for the module
 LOGGER = logging.getLogger(__name__) # Every log will use the module name
@@ -56,6 +57,8 @@ class Configuration(object):
             self.number_of_chars = settings['model']['number_of_chars']
             self.max_input_len = settings['model']['max_input_len']
             self.inverted = settings['model']['inverted']
+            self.loss = settings['model']['loss']
+            self.optimizer = settings['model']['optimizer']
 
             self.batch_size = settings['training']['batch_size']
             self.epochs = settings['training']['epochs']
@@ -74,7 +77,7 @@ AMOUNT_OF_NOISE = 0.2 / CONFIG.max_input_len
 CHARS = list("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .")
 PADDING = "☕"
 
-DATA_FILES_PATH = "~/Downloads/data"
+DATA_FILES_PATH = "~/DeepSpell/Downloads/data"
 DATA_FILES_FULL_PATH = os.path.expanduser(DATA_FILES_PATH)
 DATA_FILES_URL = "http://www.statmt.org/wmt14/training-monolingual-news-crawl/news.2013.en.shuffled.gz"
 NEWS_FILE_NAME_COMPRESSED = os.path.join(DATA_FILES_FULL_PATH, "news.2013.en.shuffled.gz") # 1.1 GB
@@ -86,7 +89,7 @@ NEWS_FILE_NAME_SPLIT = os.path.join(DATA_FILES_FULL_PATH, "news.2013.en.split")
 NEWS_FILE_NAME_TRAIN = os.path.join(DATA_FILES_FULL_PATH, "news.2013.en.train")
 NEWS_FILE_NAME_VALIDATE = os.path.join(DATA_FILES_FULL_PATH, "news.2013.en.validate")
 CHAR_FREQUENCY_FILE_NAME = os.path.join(DATA_FILES_FULL_PATH, "char_frequency.json")
-SAVED_MODEL_FILE_NAME = os.path.join(DATA_FILES_FULL_PATH, "keras_spell_e{}.h5") # an HDF5 file
+SAVED_MODEL_FILE_NAME = os.path.join(DATA_FILES_FULL_PATH, "th_news2013_keras_spell_e{}.h5") # an HDF5 file
 
 # Some cleanup:
 NORMALIZE_WHITESPACE_REGEX = re.compile(r'[^\S\n]+', re.UNICODE) # match all whitespace except newlines
@@ -243,7 +246,7 @@ def generate_model(output_len, chars=None):
     model.add(TimeDistributed(Dense(len(chars), kernel_initializer=CONFIG.initialization)))
     model.add(Activation('softmax'))
 
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss=CONFIG.loss, optimizer=CONFIG.optimizer, metrics=['accuracy'])
     return model
 
 
@@ -339,7 +342,24 @@ class OnEpochEndCallback(Callback):
         print_random_predictions(self.model, ctable, X_val, y_val)
         self.model.save(SAVED_MODEL_FILE_NAME.format(epoch))
 
+
+class OnEpochModelCallback(Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        ModelCheckpoint(filepath='model.h5', verbose=1, save_best_only=True)
+        print("on epoch end - model chekpoint")
+
+
+class OnEpochEndEarlyStop(Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=CONFIG.epochs/100, verbose=1)
+        print("on epoch end - early stop")
+
+csv_logger = CSVLogger('training.log')
+MODEL_CALLBACK = OnEpochModelCallback()
+#TB_CALLBACK = TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True)
 ON_EPOCH_END_CALLBACK = OnEpochEndCallback()
+EARLY_STOP_CALLBACK = OnEpochEndEarlyStop()
+
 
 def itarative_train(model, from_epoch=0):
     """
@@ -349,7 +369,8 @@ def itarative_train(model, from_epoch=0):
     """
     model.fit_generator(generator(NEWS_FILE_NAME_TRAIN), steps_per_epoch=CONFIG.steps_per_epoch,
                         epochs=CONFIG.epochs,
-                        verbose=1, callbacks=[ON_EPOCH_END_CALLBACK, ], validation_data=generator(NEWS_FILE_NAME_VALIDATE),
+                        verbose=1, callbacks=[csv_logger,ON_EPOCH_END_CALLBACK, MODEL_CALLBACK, EARLY_STOP_CALLBACK],
+                        validation_data=generator(NEWS_FILE_NAME_VALIDATE),
                         validation_steps=CONFIG.validation_steps,
                         class_weight=None, max_q_size=10, workers=1,
                         pickle_safe=False, initial_epoch=from_epoch)
@@ -592,7 +613,7 @@ if __name__ == '__main__':
     #  preprocesses_split_lines2()
     #  preprocesses_split_lines4()
         #  preprocess_partition_data()
-        train_speller(os.path.join(DATA_FILES_FULL_PATH, "keras_spell_e88.h5"), from_epoch=88)
-        # train_speller()
+        #train_speller(os.path.join(DATA_FILES_FULL_PATH, "keras_spell_e88.h5"), from_epoch=88)
+        train_speller()
     except Exception as e:
         LOGGER.error(traceback.format_exc())
