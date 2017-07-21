@@ -45,7 +45,7 @@ def data():
     size = 0.00001
     answers = open(NEWS_FILE_NAME_SAMPLE.format(size)).read().decode('utf-8').split("\n")
     qa_tuples = [generate_question(answer) for answer in answers]
-    questions = [qa[0] for qa in qa_tuples]
+    questions = [qa[0][::-1] for qa in qa_tuples]
 
     chars = read_top_chars()
     ctable = CharacterTable(chars)
@@ -80,8 +80,8 @@ def model(x_train, y_train, x_test, y_test):
     CONFIG = Configuration()
     model = generate_model(CONFIG.max_input_len, chars=read_top_chars())
     model.fit(x_train, y_train,
-              batch_size={{choice([10, 25])}},
-              epochs={{choice([1, 5])}},
+              batch_size={{choice([10, 100, 250, 500])}},
+              epochs={{choice([10, 25])}},
               verbose=2,
               validation_data=(x_test, y_test))
 
