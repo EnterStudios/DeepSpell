@@ -7,6 +7,8 @@ model:
   number_of_chars: 100
   max_input_len: 60
   inverted: True
+  loss: 'binary_crossentropy'
+  optimizer: 'adam'
 
 training:
   batch_size: 100 # As the model changes in size, play with the batch size to best fit the process in memory
