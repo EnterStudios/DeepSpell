@@ -14,15 +14,17 @@ from __future__ import print_function, division, unicode_literals
 import os
 from hashlib import sha256
 import json
+import datetime
 from numpy.random import seed as random_seed
 from keras_spell import CharacterTable, read_top_chars, generate_question, _vectorize, generate_model, Configuration, print_random_predictions
 
-from keras.models import Sequential
-from keras.layers import Activation, TimeDistributed, Dense, RepeatVector, Dropout, recurrent
-
 from hyperas import optim
 from hyperas.distributions import choice, uniform, conditional
-from hyperopt import Trials, STATUS_OK, tpe
+from hyperopt import Trials, STATUS_OK, tpe, space_eval
+
+from keras.models import Sequential, load_model
+from keras.layers import Activation, TimeDistributed, Dense, RepeatVector, Dropout, recurrent
+from keras.callbacks import Callback, ModelCheckpoint, TensorBoard, EarlyStopping, CSVLogger
 
 random_seed(123) # Reproducibility
 
@@ -42,7 +44,7 @@ def data():
     NEWS_FILE_NAME_SPLIT = os.path.join(DATA_FILES_FULL_PATH, "news.2013.en.split")
     NEWS_FILE_NAME_SAMPLE = os.path.join(DATA_FILES_FULL_PATH, "news.2013.en.sample_{}")
     CHAR_FREQUENCY_FILE_NAME = os.path.join(DATA_FILES_FULL_PATH, "char_frequency.json")
-    SAVED_MODEL_FILE_NAME = os.path.join(DATA_FILES_FULL_PATH, "keras_spell_grid_search_e{}.h5") # an HDF5 file
+    SAVED_MODEL_FILE_NAME = os.path.join(DATA_FILES_FULL_PATH, "keras_spell_hyperas_e{}.h5") # an HDF5 file
 
 
     size = 0.0001
@@ -81,9 +83,6 @@ def model(x_train, y_train, x_test, y_test):
     """
 
     CONFIG = Configuration()
-
-    """Generate the model"""
-    print('Build model...')
     chars = read_top_chars()
     model = Sequential()
     # "Encode" the input sequence using an RNN, producing an output of hidden_size
@@ -92,24 +91,22 @@ def model(x_train, y_train, x_test, y_test):
     for layer_number in range(CONFIG.input_layers):
         model.add(recurrent.LSTM(CONFIG.hidden_size, input_shape=(None, len(chars)), kernel_initializer=CONFIG.initialization,
                                  return_sequences=layer_number + 1 < CONFIG.input_layers))
-        model.add(Dropout({{uniform(0, 1)}}))
+        model.add(Dropout(CONFIG.amount_of_dropout))
     # For the decoder's input, we repeat the encoded input for each time step
     model.add(RepeatVector(CONFIG.max_input_len))
     # The decoder RNN could be multiple layers stacked or a single layer
     for _ in range(CONFIG.output_layers):
         model.add(recurrent.LSTM(CONFIG.hidden_size, return_sequences=True, kernel_initializer=CONFIG.initialization))
-        model.add(Dropout({{uniform(0, 1)}}))
+        model.add(Dropout(CONFIG.amount_of_dropout))
 
     # For each of step of the output sequence, decide which character should be chosen
     model.add(TimeDistributed(Dense(len(chars), kernel_initializer=CONFIG.initialization)))
     model.add(Activation('softmax'))
 
     model.compile(loss=CONFIG.loss, optimizer={{choice(['rmsprop', 'adam', 'sgd'])}}, metrics=['accuracy'])
-    return model
-
     model.fit(x_train, y_train,
-              batch_size={{choice([10, 100, 250, 500])}},
-              epochs={{choice([10, 25])}},
+              batch_size={{choice([100, 200, 300, 400])}},
+              epochs={{choice([100, 200, 250, 300])}},
               verbose=2,
               validation_data=(x_test, y_test))
 
@@ -123,15 +120,31 @@ def model(x_train, y_train, x_test, y_test):
     return {'loss': -acc, 'status': STATUS_OK, 'model': model}
 
 if __name__ == '__main__':
-
-    best_run, best_model = optim.minimize(model=model,
+    start = datetime.datetime.now()
+    print(start.strftime("%Y-%m-%d %H:%M"))
+    print("Starting Hyperparameter Optimization.")
+    
+    DATA_FILES_PATH = "~/DeepSpell/Downloads/data"
+    DATA_FILES_FULL_PATH = os.path.expanduser(DATA_FILES_PATH)
+    SAVED_MODEL_FILE_NAME = os.path.join(DATA_FILES_FULL_PATH, "keras_spell_hyperas_e{}.h5") # an HDF5
+    trials = Trials()
+    best_run, best_model, space = optim.minimize(model=model,
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=5,
-                                          trials=Trials())
+                                          max_evals=3,
+                                          trials=trials,
+                                          eval_space=True,
+                                          return_space=True)
     X_train, Y_train, X_test, Y_test = data()
+   
+    print("Finished Hyperparameter Optimization.")
+    end = datetime.datetime.now()
+    delta = end - start
+    print("Hyperparameter Optimization took {:.1f} seconds.".format(delta.total_seconds()))
+
     print("Evalutation of best performing model:")
     print(best_model.evaluate(X_test, Y_test))
     print("Best performing model chosen hyper-parameters:")
     print(best_run)
-
+    print("Saving best performing model...")
+    best_model.save(SAVED_MODEL_FILE_NAME)
