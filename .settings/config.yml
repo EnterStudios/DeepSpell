@@ -10,9 +10,10 @@ model:
   loss: 'categorical_crossentropy'
   optimizer: 'adam'
 
+# Optimal hyperparameters from hyperas tuning = {u'epochs': 250, u'optimizer': u'adam', u'batch_size': 300}
 training:
-  batch_size: 100 # As the model changes in size, play with the batch size to best fit the process in memory
-  epochs: 500 # due to mini-epochs.
-  steps_per_epoch: 1000 # This is a mini-epoch. Using News 2013 an epoch would need to be ~60K.
+  batch_size: 300
+  epochs: 300
+  steps_per_epoch: 255000 # = number of unique samples / batch size = 76,415,055 / 300 = 254,717
   validation_steps: 10
   number_of_iterations: 10
