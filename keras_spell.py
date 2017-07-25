@@ -612,7 +612,7 @@ if __name__ == '__main__':
         #  preprocesses_split_lines() --- Choose this step or:
     #  preprocesses_split_lines2()
     #  preprocesses_split_lines4()
-        #  preprocess_partition_data()
+        preprocess_partition_data()
         #train_speller(os.path.join(DATA_FILES_FULL_PATH, "keras_spell_e88.h5"), from_epoch=88)
         train_speller()
     except Exception as e:
